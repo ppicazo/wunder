@@ -396,10 +396,12 @@ public class Wunder extends Activity {
 	public static final int MENU_REFRESH = 12;
 	public static final int MENU_SETTINGS = 13;
 	public static final int MENU_GEO = 14;
+	public static final int MENU_FAVORITES = 15;
 
 	public boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, MENU_REFRESH, 0, R.string.menu_refresh);
 		menu.add(0, MENU_GEO, 0, R.string.menu_nearby);
+		menu.add(0, MENU_FAVORITES, 0, R.string.menu_favorites);
 		menu.add(0, MENU_SETTINGS, 0, R.string.menu_settings);
 		menu.add(0, MENU_ABOUT, 0, R.string.menu_about);
 		menu.add(0, MENU_QUIT, 0, R.string.menu_quit);
