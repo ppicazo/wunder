@@ -1,12 +1,5 @@
 package com.smerty.wunder;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Locale;
-import java.util.Map;
-
-import org.w3c.dom.Document;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -15,9 +8,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.LocationManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.AsyncTask.Status;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.util.Log;
@@ -32,23 +23,31 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.ion.Ion;
 import com.smerty.android.DocumentHelper;
-import com.smerty.android.WebFetch;
+
+import org.w3c.dom.Document;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Locale;
+import java.util.Map;
 
 public class Wunder extends Activity {
 
 	static private final String TAG = Wunder.class.getSimpleName();
 
 	private static final String PREFS_NAME = "WunderPrefs";
-	private static final String DEF_STATION_ID = "KCALIVER14";
+	private static final String DEF_STATION_ID = "KCAMOUNT27";
 	private LocationHelper locationHelper;
 	transient private String selectedID = "";
 
 	transient private ScrollView scrollView;
 	transient private TableLayout tableLayout;
 
-	transient private AsyncTask<Wunder, Integer, Integer> updatetask;
-	public static ProgressDialog progressDialog;
+    public ProgressDialog mProgressDialog;
 
 	transient private WeatherReport conds;
 
@@ -64,18 +63,46 @@ public class Wunder extends Activity {
 
 		tableLayout.setShrinkAllColumns(true);
 
-		if (this.updatetask == null) {
-			Log.d(TAG, "task was null, calling execute");
-			this.updatetask = new UpdateFeedTask().execute(this);
-		} else {
-			final Status updateTaskStatus = this.updatetask.getStatus();
-			if (updateTaskStatus == Status.FINISHED) {
-				Log
-						.d(TAG,
-								"task wasn't null, status finished, calling execute");
-				this.updatetask = new UpdateFeedTask().execute(this);
-			}
-		}
+        final Wunder ita = this;
+
+//        ita.mProgressDialog = ProgressDialog.show(ita.getBaseContext(), "", "Loading...", true);
+
+        Object priceGroup = new Object();
+
+        int pendingRequestCount = Ion.getDefault(ita).getPendingRequestCount(priceGroup);
+
+        Log.i(TAG, "Pending requests: " + pendingRequestCount);
+
+        if (pendingRequestCount == 0) {
+
+
+			final SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+			final String pwsid = settings.getString("stationID", DEF_STATION_ID);
+
+            Ion.with(ita, "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=" + pwsid)
+                    .progressDialog(ita.mProgressDialog)
+                    .group(priceGroup)
+                    .asString()
+                    .setCallback(new FutureCallback<String>() {
+                        @Override
+                        public void onCompleted(Exception e, String result) {
+                            Log.i(TAG, "Callback firing.");
+                            if (e == null) {
+                                ita.conds = ita.getWeather(result, pwsid);
+                                allTogether();
+                                Log.i(TAG, "Network Success.");
+                                Toast.makeText(ita.getBaseContext(), "Network Success...", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Log.e(TAG, "Network Failure?", e);
+                                Toast.makeText(ita.getBaseContext(), "Network Failure...", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+
+            Toast.makeText(ita.getBaseContext(), "Loading...", Toast.LENGTH_SHORT).show();
+        } else {
+            Log.i(TAG, "Pending requests exist.");
+        }
 
 		scrollView.addView(tableLayout);
 		setContentView(scrollView);
@@ -86,51 +113,6 @@ public class Wunder extends Activity {
 		super.onConfigurationChanged(newConfig);
 		if (scrollView != null) {
 			setContentView(scrollView);
-		}
-	}
-
-	private class UpdateFeedTask extends AsyncTask<Wunder, Integer, Integer> {
-
-		private Wunder that;
-
-		protected Integer doInBackground(final Wunder... thats) {
-
-			if (that == null) {
-				this.that = thats[0];
-			}
-
-			publishProgress(0);
-
-			try {
-				that.conds = that.getWeather();
-			} catch (Exception e) {
-				that.conds = null;
-			}
-
-			publishProgress(100);
-
-			return 0;
-		}
-
-		protected void onProgressUpdate(final Integer... progress) {
-			Log.d(TAG, progress[0].toString());
-			if (progress[0] == 0) {
-				Wunder.progressDialog = ProgressDialog.show(that, that
-						.getResources().getText(R.string.app_name), that
-						.getResources().getText(
-								R.string.message_download_weather_progress),
-						true, false);
-			}
-			if (progress[0] == 100) {
-				Wunder.progressDialog.dismiss();
-			}
-
-		}
-
-		protected void onPostExecute(final Integer result) {
-			// Log.d("onPostExecute", that.getApplicationInfo().packageName);
-			that.allTogether();
-
 		}
 	}
 
@@ -529,23 +511,15 @@ public class Wunder extends Activity {
 		return true;
 	}
 
-	public WeatherReport getWeather() {
+	public WeatherReport getWeather(String xml, String pwsid) {
 
 		WeatherReport retval = new WeatherReport();
 
 		InputStream data;
 
-		String pwsid = null;
-
 		try {
 
-			final SharedPreferences settings = getSharedPreferences(PREFS_NAME,
-					0);
-			pwsid = settings.getString("stationID", DEF_STATION_ID);
-
-			data = WebFetch.getInputStream(
-					"http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID="
-							+ pwsid, "java", "UTF-8");
+            data = new ByteArrayInputStream(xml.getBytes("UTF-8"));
 
 			final Document doc = DocumentHelper.getDocument(data);
 
