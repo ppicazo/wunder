@@ -12,16 +12,8 @@ import android.widget.Toast;
 import com.google.gson.reflect.TypeToken;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.ion.Ion;
-import com.smerty.android.DocumentHelper;
 
-import org.w3c.dom.Document;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class LocationHelper implements LocationListener {
 
@@ -70,20 +62,19 @@ public class LocationHelper implements LocationListener {
 
             if (pendingRequestCount == 0) {
 
-                final String url = "http://api.smerty.org/wunder/wx_near_all.php?lat="
+                final String url = "http://api.smerty.org/wunder/wx_near_all.php?output=json&lat="
                         + location.getLatitude() + "&lon=" + location.getLongitude();
 
                 Ion.with(wunderActivity, url)
                         .progressDialog(wunderActivity.mProgressDialog)
                         .group(priceGroup)
-                        .asString()
-                        .setCallback(new FutureCallback<String> () {
+                        .as(new TypeToken<List<Station>>() { })
+                        .setCallback(new FutureCallback<List<Station>> () {
                             @Override
-                            public void onCompleted(Exception e, String result) {
+                            public void onCompleted(Exception e, List<Station> result) {
                                 Log.i(TAG, "Callback firing.");
                                 if (e == null) {
-                                    Map<String, String> stations = downloadLocalStations(result);
-                                    wunderActivity.processLocalStations(stations);
+                                    wunderActivity.processLocalStations(result);
                                     Log.i(TAG, "Network Success.");
                                     Toast.makeText(wunderActivity.getBaseContext(), "Network Success...", Toast.LENGTH_SHORT).show();
                                 } else {
@@ -129,64 +120,6 @@ public class LocationHelper implements LocationListener {
 		} else {
 			Log.d(TAG, location.toString());
 		}
-	}
-
-	public Map<String, String> downloadLocalStations(final String xml) {
-
-		InputStream data;
-		
-		Map<String, String> stationMap = new HashMap<String, String>();
-		
-		try {
-
-            data = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-
-
-            final Document doc = DocumentHelper.getDocument(data);
-
-			try {
-
-				final int pwsStationCount = doc.getElementsByTagName("neighborhood")
-						.getLength();
-
-				for (int i = 0; i < pwsStationCount; i++) {
-
-					String tmpPWSName;
-					String tmpPWSID;
-
-					try {
-						tmpPWSName = doc.getElementsByTagName("neighborhood")
-								.item(i).getChildNodes().item(0).getNodeValue()
-								.replaceAll("\\s+", " ");
-					} catch (NullPointerException e) {
-						tmpPWSName = doc.getElementsByTagName("city").item(i)
-								.getChildNodes().item(0).getNodeValue()
-								.replaceAll("\\s+", " ");
-					}
-					tmpPWSID = doc.getElementsByTagName("id").item(i)
-							.getChildNodes().item(0).getNodeValue();
-
-					if (tmpPWSID != null && tmpPWSName != null
-							& tmpPWSID.length() > 0 && tmpPWSName.length() > 0) {
-						stationMap.put(tmpPWSID, tmpPWSName);
-					} else {
-						Log.d(TAG, "didn't put station in map");
-					}
-				}
-
-			} catch (Exception e) {
-				Log.d(TAG, e.getMessage(), e);
-				stationMap = null;
-				// do nothing
-			}
-			//return stationMap;
-
-		} catch (IOException e1) {
-			//e1.printStackTrace();
-			Log.d(TAG, e1.getMessage(), e1);
-			stationMap = null;
-		}
-		return stationMap;
 	}
 
 }

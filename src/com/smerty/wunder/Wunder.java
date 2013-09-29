@@ -32,6 +32,8 @@ import org.w3c.dom.Document;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -616,7 +618,7 @@ public class Wunder extends Activity {
 		super.onPause();
 	}
 
-	public void processLocalStations(final Map<String, String> stations) {
+	public void processLocalStations(final List<Station> stations) {
 
 		if (stations == null || stations.isEmpty()) {
 			Toast.makeText(getBaseContext(), R.string.toast_no_nearby,
@@ -628,8 +630,21 @@ public class Wunder extends Activity {
 
 		alertPWSList.setTitle(R.string.menu_nearby);
 
-		final String PWSName[] = stations.values().toArray(new String[0]);
-		final String PWSid[] = stations.keySet().toArray(new String[0]);
+        List<String> pwsNameList = new ArrayList<String>();
+        List<String> pwsIdList = new ArrayList<String>();
+
+        for (Station station: stations) {
+            pwsIdList.add(station.id);
+            if (station.neighborhood != null) {
+                pwsNameList.add(station.neighborhood);
+            } else {
+                pwsNameList.add(station.city + ", " + station.state);
+            }
+        }
+
+
+		final String PWSName[] = pwsNameList.toArray(new String[0]);
+		final String PWSid[] = pwsIdList.toArray(new String[0]);
 
 		final Wunder thatPWSList = this;
 
