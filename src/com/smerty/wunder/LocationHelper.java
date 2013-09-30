@@ -21,15 +21,15 @@ public class LocationHelper implements LocationListener {
 
 	transient final private LocationManager locationManager;
 	transient final private String bestProvider;
-	transient final private Wunder wunderActivity;
+	transient final private Wunder wunder;
 
 	private static final String[] LOCATION_STATUS = { "Out of Service",
 			"Temporarily Unavailable", "Available" };
 
-	public LocationHelper(final LocationManager locationManager, final Wunder wunderActivity) {
+	public LocationHelper(final LocationManager locationManager, final Wunder wunder) {
 
 		this.locationManager = locationManager;
-		this.wunderActivity = wunderActivity;
+		this.wunder = wunder;
 
 		final List<String> providers = locationManager.getAllProviders();
 		for (String provider : providers) {
@@ -49,14 +49,14 @@ public class LocationHelper implements LocationListener {
 
 		if (location == null) {
 			// Failed
-			Toast.makeText(wunderActivity.getBaseContext(),
+			Toast.makeText(wunder.getBaseContext(),
 					R.string.toast_location_failure, Toast.LENGTH_SHORT).show();
 			return;
 		} else {
 
-            Object priceGroup = new Object();
+            Object stationListRequestGroup = new Object();
 
-            int pendingRequestCount = Ion.getDefault(wunderActivity).getPendingRequestCount(priceGroup);
+            int pendingRequestCount = Ion.getDefault(wunder).getPendingRequestCount(stationListRequestGroup);
 
             Log.i(TAG, "Pending requests: " + pendingRequestCount);
 
@@ -65,26 +65,26 @@ public class LocationHelper implements LocationListener {
                 final String url = "http://api.smerty.org/wunder/wx_near_all.php?output=json&lat="
                         + location.getLatitude() + "&lon=" + location.getLongitude();
 
-                Ion.with(wunderActivity, url)
-                        .progressDialog(wunderActivity.mProgressDialog)
-                        .group(priceGroup)
+                Ion.with(wunder, url)
+                        .progressDialog(wunder.mProgressDialog)
+                        .group(stationListRequestGroup)
                         .as(new TypeToken<List<Station>>() { })
                         .setCallback(new FutureCallback<List<Station>> () {
                             @Override
                             public void onCompleted(Exception e, List<Station> result) {
                                 Log.i(TAG, "Callback firing.");
                                 if (e == null) {
-                                    wunderActivity.processLocalStations(result);
+                                    wunder.processLocalStations(result);
                                     Log.i(TAG, "Network Success.");
-                                    Toast.makeText(wunderActivity.getBaseContext(), "Network Success...", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(wunder.getBaseContext(), "Network Success...", Toast.LENGTH_SHORT).show();
                                 } else {
                                     Log.e(TAG, "Network Failure?", e);
-                                    Toast.makeText(wunderActivity.getBaseContext(), "Network Failure...", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(wunder.getBaseContext(), "Network Failure...", Toast.LENGTH_SHORT).show();
                                 }
                             }
                         });
 
-                Toast.makeText(wunderActivity.getBaseContext(), "Loading...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(wunder.getBaseContext(), "Loading...", Toast.LENGTH_SHORT).show();
             } else {
                 Log.i(TAG, "Pending requests exist.");
             }

@@ -65,13 +65,13 @@ public class Wunder extends Activity {
 
 		tableLayout.setShrinkAllColumns(true);
 
-        final Wunder ita = this;
+        final Wunder wunder = this;
 
-//        ita.mProgressDialog = ProgressDialog.show(ita.getBaseContext(), "", "Loading...", true);
+        //wunder.mProgressDialog = ProgressDialog.show(wunder.getBaseContext(), "", "Loading...", true);
 
-        Object priceGroup = new Object();
+        Object currentWeatherRequestGroup = new Object();
 
-        int pendingRequestCount = Ion.getDefault(ita).getPendingRequestCount(priceGroup);
+        int pendingRequestCount = Ion.getDefault(wunder).getPendingRequestCount(currentWeatherRequestGroup);
 
         Log.i(TAG, "Pending requests: " + pendingRequestCount);
 
@@ -81,27 +81,27 @@ public class Wunder extends Activity {
 			final SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
 			final String pwsid = settings.getString("stationID", DEF_STATION_ID);
 
-            Ion.with(ita, "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=" + pwsid)
-                    .progressDialog(ita.mProgressDialog)
-                    .group(priceGroup)
+            Ion.with(wunder, "http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=" + pwsid)
+                    .progressDialog(wunder.mProgressDialog)
+                    .group(currentWeatherRequestGroup)
                     .asString()
                     .setCallback(new FutureCallback<String>() {
                         @Override
                         public void onCompleted(Exception e, String result) {
                             Log.i(TAG, "Callback firing.");
                             if (e == null) {
-                                ita.conds = ita.getWeather(result, pwsid);
+                                wunder.conds = wunder.getWeather(result, pwsid);
                                 allTogether();
                                 Log.i(TAG, "Network Success.");
-                                Toast.makeText(ita.getBaseContext(), "Network Success...", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(wunder.getBaseContext(), "Network Success...", Toast.LENGTH_SHORT).show();
                             } else {
                                 Log.e(TAG, "Network Failure?", e);
-                                Toast.makeText(ita.getBaseContext(), "Network Failure...", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(wunder.getBaseContext(), "Network Failure...", Toast.LENGTH_SHORT).show();
                             }
                         }
                     });
 
-            Toast.makeText(ita.getBaseContext(), "Loading...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(wunder.getBaseContext(), "Loading...", Toast.LENGTH_SHORT).show();
         } else {
             Log.i(TAG, "Pending requests exist.");
         }
