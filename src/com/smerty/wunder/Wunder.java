@@ -635,11 +635,7 @@ public class Wunder extends Activity {
 
         for (Station station: stations) {
             pwsIdList.add(station.id);
-            if (station.neighborhood != null) {
-                pwsNameList.add(station.neighborhood);
-            } else {
-                pwsNameList.add(station.city + ", " + station.state);
-            }
+            pwsNameList.add(station.displayName());
         }
 
 
